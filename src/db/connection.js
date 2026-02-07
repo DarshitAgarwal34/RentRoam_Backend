@@ -9,10 +9,10 @@ const mysql = require('mysql2/promise');
 // Create a connection pool (recommended for real-world apps)
 // Pool lets multiple queries run without opening new connections each time
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'boanifxmofb2rkecbnqh-mysql.services.clever-cloud.com',   // MySQL host
-  user: process.env.DB_USER || 'ubjrshmnpaaod7f2',        // username
-  password: process.env.DB_PASS || 'Hr1DQl5N3tKUdwpFNque',        // password
-  database: process.env.DB_NAME || 'boanifxmofb2rkecbnqh', // database name
+  host: process.env.MYSQL_ADDON_HOST || 'boanifxmofb2rkecbnqh-mysql.services.clever-cloud.com',   // MySQL host
+  user: process.env.MYSQL_ADDON_USER  || '',        // username
+  password: process.env.MYSQL_ADDON_PASSWORD || '',        // password
+  database: process.env.MYSQL_ADDON_DB || 'boanifxmofb2rkecbnqh', // database name
   waitForConnections: true,                   // wait rather than error if busy
   connectionLimit: 10,                        // max simultaneous connections
   queueLimit: 0                               // unlimited queued requests
