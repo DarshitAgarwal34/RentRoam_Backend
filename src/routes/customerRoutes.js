@@ -9,6 +9,7 @@ router.post('/signup', upload.single('profile_picture'), customerController.sign
 
 // POST /api/customers/login
 router.post('/login', customerController.login);
+router.post('/forgot-password', customerController.resetPassword);
 
 // GET /api/customers/:id
 const auth = require('../middlewares/authMiddleware');

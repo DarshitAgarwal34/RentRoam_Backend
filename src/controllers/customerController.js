@@ -37,6 +37,42 @@ async function comparePassword(plain, hash) {
   return bcrypt.compare(plain, hash);
 }
 
+async function resetPassword(req, res) {
+  try {
+    const { email, dob, newPassword } = req.body || {};
+
+    if (!email || !dob || !newPassword) {
+      return res.status(400).json({
+        error: 'missing_required_fields',
+        message: 'email, dob and newPassword are required',
+      });
+    }
+
+    const [rows] = await pool.query(
+      'SELECT id FROM customers WHERE LOWER(email) = LOWER(?) AND DATE(dob) = DATE(?) LIMIT 1',
+      [email, dob]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({
+        error: 'not_found',
+        message: 'Email and DOB do not match any customer account',
+      });
+    }
+
+    const hashed = await hashPassword(newPassword);
+    await pool.query(
+      'UPDATE customers SET password = ?, updated_at = NOW() WHERE id = ?',
+      [hashed, rows[0].id]
+    );
+
+    return res.json({ message: 'password_updated' });
+  } catch (err) {
+    console.error('customer resetPassword error:', err);
+    return res.status(500).json({ error: 'internal_server_error', detail: err.message });
+  }
+}
+
 // Controller: signup (customer)
 // Accepts JSON body or multipart/form-data (if you use multer to parse file)
 // Expected fields: name, email, password (required), phone,dob,gender optional
@@ -362,6 +398,7 @@ async function getRecentBookings(req, res) {
 module.exports = {
   signup,
   login,
+  resetPassword,
   getProfile,
   uploadKyc,
   updateProfile,

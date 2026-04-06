@@ -8,6 +8,7 @@ const adminManage = require('../controllers/adminManageController');
 // auth
 router.post('/login', adminController.login);
 router.post('/signup', adminController.signup);
+router.post('/forgot-password', adminController.resetPassword);
 
 // protected admin-only
 router.get('/customers', auth.authenticateJWT, adminManage.listCustomers);

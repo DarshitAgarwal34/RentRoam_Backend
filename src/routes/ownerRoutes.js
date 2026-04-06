@@ -6,6 +6,7 @@ const ownerController = require('../controllers/ownerController');
 
 router.post('/signup', upload.single('profile_picture'), ownerController.signup);
 router.post('/login', ownerController.login);
+router.post('/forgot-password', ownerController.resetPassword);
 router.get('/:ownerId', ownerController.getProfile);
 router.put('/:ownerId', upload.single('profile_picture'), ownerController.updateProfile);
 router.get('/:ownerId/vehicles', ownerController.getVehicles);

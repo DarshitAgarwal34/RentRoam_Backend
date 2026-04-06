@@ -78,7 +78,7 @@ async function listAdmins(page = 1, pageSize = 20) {
 
 // Update admin fields (partial)
 async function updateAdmin(adminId, fields) {
-  const allowed = ['name','phone','profile_picture','role','role_level','is_active','dob','age','gender'];
+  const allowed = ['name','phone','profile_picture','role','role_level','is_active','dob','age','gender','password'];
   const sets = [];
   const params = [];
   for (const key of allowed) {

@@ -24,6 +24,31 @@ function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
+async function resetPassword(req, res) {
+  try {
+    const { email, dob, newPassword } = req.body || {};
+    if (!email || !dob || !newPassword) {
+      return res.status(400).json({
+        error: "email, dob and newPassword required",
+      });
+    }
+
+    const adminRow = await getAdminByEmail(email);
+    const adminDob = adminRow?.dob ? new Date(adminRow.dob).toISOString().slice(0, 10) : null;
+    if (!adminRow || adminDob !== dob) {
+      return res.status(404).json({ error: "admin_not_found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(String(newPassword), 10);
+    await updateAdmin(adminRow.id, { password: hashedPassword });
+
+    return res.json({ message: "password_updated" });
+  } catch (err) {
+    console.error("admin resetPassword error", err);
+    return res.status(500).json({ error: "internal_server_error" });
+  }
+}
+
 // POST /api/admins/signup
 // Creates a new admin (you may want to restrict who can call this in production)
 async function signup(req, res) {
@@ -179,6 +204,7 @@ async function updateAdminHandler(req, res) {
 module.exports = {
   signup,
   login,
+  resetPassword,
   listAdminsHandler,
   getAdminProfile,
   setActiveHandler,

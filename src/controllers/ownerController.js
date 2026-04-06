@@ -35,6 +35,42 @@ async function comparePassword(plain, hash) {
   return bcrypt.compare(plain, hash);
 }
 
+async function resetPassword(req, res) {
+  try {
+    const { email, dob, newPassword } = req.body || {};
+
+    if (!email || !dob || !newPassword) {
+      return res.status(400).json({
+        error: 'missing_required_fields',
+        message: 'email, dob and newPassword are required',
+      });
+    }
+
+    const [rows] = await pool.query(
+      'SELECT id FROM owners WHERE LOWER(email) = LOWER(?) AND DATE(dob) = DATE(?) LIMIT 1',
+      [email, dob]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({
+        error: 'not_found',
+        message: 'Email and DOB do not match any owner account',
+      });
+    }
+
+    const hashed = await hashPassword(newPassword);
+    await pool.query(
+      'UPDATE owners SET password = ?, updated_at = NOW() WHERE id = ?',
+      [hashed, rows[0].id]
+    );
+
+    return res.json({ message: 'password_updated' });
+  } catch (err) {
+    console.error('owner resetPassword error:', err);
+    return res.status(500).json({ error: 'internal_server_error', detail: err.message });
+  }
+}
+
 /**
  * Owner signup
  * - Accepts name, email, password required
@@ -335,6 +371,7 @@ async function getBookings(req, res) {
 module.exports = {
   signup,
   login,
+  resetPassword,
   getProfile,
   updateProfile,
   getVehicles,
