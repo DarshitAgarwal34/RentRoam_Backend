@@ -5,7 +5,11 @@
 require('dotenv').config();
 
 const { pool, testConnection } = require('./db/connection');
+const { ensureBookingsTable } = require("./models/bookingModel");
 testConnection(); // check DB at startup
+ensureBookingsTable()
+  .then(() => console.log("Bookings table ready"))
+  .catch((err) => console.error("Failed to ensure bookings table:", err.message));
 
 
 // Import the Express framework to create the HTTP server

@@ -40,6 +40,12 @@ JWT_SECRET=your_long_random_secret
 JWT_EXPIRES_IN=7d
 AADHAR_KEY=another_long_random_secret
 VITE_API_URL=http://localhost:5000
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+MAIL_FROM=RentRoam <no-reply@rentroam.com>
 ```
 
 ## Scripts
@@ -56,6 +62,7 @@ Base URL: `/api`
 - `POST /api/customers/:id/kyc` (multipart, `aadhar_file`, `license_file`)
 - `GET /api/customers/:id/kyc`
 - `GET /api/customers/:id/bookings` (JWT)
+- `POST /api/customers/:id/bookings` (JWT)
 
 ### Owners
 - `POST /api/owners/signup` (multipart, `profile_picture`)
@@ -96,4 +103,5 @@ Uploaded files are served from:
 ## Notes
 - MySQL connection is initialized on startup via `src/db/connection.js`.
 - JWT middleware is in `src/middlewares/authMiddleware.js`.
-
+- `bookings` table is auto-created on startup if it does not exist.
+- Email notifications are sent when SMTP env vars are configured and `nodemailer` is installed.

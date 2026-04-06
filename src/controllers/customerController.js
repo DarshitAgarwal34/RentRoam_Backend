@@ -10,6 +10,8 @@ const jwt = require('jsonwebtoken'); // JWT generation
 const { pool } = require('../db/connection'); // mysql2 pool exported from db/connection
 const path = require('path'); // path utilities
 const fs = require('fs'); // fs to optionally remove files on errors
+const bookingModel = require("../models/bookingModel");
+const { sendBookingNotificationEmails } = require("../services/mailer");
 
 // Load environment variables (e.g. JWT secret, token expiry)
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'; // fallback secret for dev
@@ -264,13 +266,9 @@ async function uploadKyc(req, res) {
     const aadharFile = req.files?.aadhar_file?.[0];
     const licenseFile = req.files?.license_file?.[0];
 
-    if (!aadharFile || !licenseFile) {
-      return res.status(400).json({ error: "Both Aadhar and License photos required" });
-    }
-
-    // file paths (public/uploads/xxxx.jpg)
-    const aadharPath = `/uploads/${aadharFile.filename}`;
-    const licensePath = `/uploads/${licenseFile.filename}`;
+    // file paths (public/uploads/xxxx.jpg) are optional
+    const aadharPath = aadharFile ? `/uploads/${aadharFile.filename}` : null;
+    const licensePath = licenseFile ? `/uploads/${licenseFile.filename}` : null;
 
     const q = `
       INSERT INTO kyc 
@@ -387,10 +385,83 @@ async function updateProfile(req, res) {
 
 async function getRecentBookings(req, res) {
   const customerId = Number(req.params.id);
+  const authUserId = Number(req.user && req.user.id);
   if (!customerId) return res.status(400).json({ error: 'invalid_id' });
+  if (authUserId && authUserId !== customerId) {
+    return res.status(403).json({ error: "forbidden" });
+  }
 
-  // TEMP: until bookings table exists
-  return res.json({ bookings: [] });
+  try {
+    const limit = Number(req.query.limit || 50);
+    const bookings = await bookingModel.listCustomerBookings(customerId, limit);
+    return res.json({ bookings });
+  } catch (err) {
+    console.error("getRecentBookings error:", err);
+    return res.status(500).json({ error: "internal_server_error", detail: err.message });
+  }
+}
+
+async function createBooking(req, res) {
+  const customerId = Number(req.params.id);
+  const authUserId = Number(req.user && req.user.id);
+
+  if (!customerId) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+
+  if (authUserId && authUserId !== customerId) {
+    return res.status(403).json({ error: "forbidden" });
+  }
+
+  try {
+    const {
+      vehicle_id,
+      start_date,
+      end_date,
+      pickup_city,
+      payment_method,
+      notes,
+      total_price,
+      status,
+    } = req.body || {};
+
+    if (!vehicle_id || !start_date || !end_date) {
+      return res.status(400).json({
+        error: "missing_required_fields",
+        message: "vehicle_id, start_date and end_date are required",
+      });
+    }
+
+    const booking = await bookingModel.createBooking({
+      customer_id: customerId,
+      owner_id: req.body?.owner_id,
+      vehicle_id: Number(vehicle_id),
+      start_date,
+      end_date,
+      pickup_city,
+      payment_method,
+      notes,
+      total_price,
+      status: status || "confirmed",
+    });
+
+    const emailResult = await sendBookingNotificationEmails(booking).catch((err) => {
+      console.warn("booking email notification failed:", err.message);
+      return { sent: false, reason: "email_send_failed" };
+    });
+
+    return res.status(201).json({
+      message: "booking_created",
+      booking,
+      emailNotification: emailResult,
+    });
+  } catch (err) {
+    console.error("createBooking error:", err);
+    return res.status(err.statusCode || 500).json({
+      error: err.code || "internal_server_error",
+      message: err.message || "Failed to create booking",
+    });
+  }
 }
 
 
@@ -404,4 +475,5 @@ module.exports = {
   updateProfile,
   getKycStatus,
   getRecentBookings,
+  createBooking,
 };

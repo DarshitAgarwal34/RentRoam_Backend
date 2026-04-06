@@ -29,6 +29,7 @@ router.post(
 router.get('/:id/kyc', customerController.getKycStatus);
 
 router.get('/:id/bookings', auth.authenticateJWT, customerController.getRecentBookings);
+router.post('/:id/bookings', auth.authenticateJWT, customerController.createBooking);
 
 
 module.exports = router;
